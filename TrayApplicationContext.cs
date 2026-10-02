@@ -7,7 +7,8 @@ namespace ScreensaverExtender
     public class TrayApplicationContext : ApplicationContext
     {
         private const string DeveloperId = "slalglel"; // About 메뉴에 표시될 사용자 ID
-        private const string AppVersion = "v1.0.2";
+        private const string AppVersion = "v1.0.3";
+        private const int BaseMenuWidth = 250; // 최대 400분대 텍스트("예상 잠금 : 409분 후") 대비 여유있는 고정 폭
 
         private readonly NotifyIcon _notifyIcon;
         private readonly ContextMenuStrip _contextMenu;
@@ -48,10 +49,47 @@ namespace ScreensaverExtender
             UpdateMenuStates();
         }
 
+        private int GetScaledMenuWidth(ContextMenuStrip menu)
+        {
+            float factor = 1.0f;
+            try
+            {
+                if (menu.DeviceDpi > 0)
+                {
+                    factor = menu.DeviceDpi / 96.0f;
+                }
+                else
+                {
+                    using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
+                    {
+                        factor = g.DpiX / 96.0f;
+                    }
+                }
+            }
+            catch
+            {
+                factor = 1.0f;
+            }
+
+            return (int)Math.Round(BaseMenuWidth * factor);
+        }
+
         private ContextMenuStrip CreateContextMenu()
         {
             ContextMenuStrip menu = new ContextMenuStrip();
             menu.Font = new Font("Malgun Gothic", 9.0f);
+
+            // 메뉴 폭 고정: 시간 변경(예: 10분 -> 400분) 시 메뉴 폭이 바뀌거나 흔들리지 않도록 여유있는 고정 폭 적용
+            int initialWidth = GetScaledMenuWidth(menu);
+            menu.MinimumSize = new Size(initialWidth, 0);
+            menu.MaximumSize = new Size(initialWidth, 0);
+
+            menu.Opening += (sender, e) =>
+            {
+                int targetWidth = GetScaledMenuWidth(menu);
+                menu.MinimumSize = new Size(targetWidth, 0);
+                menu.MaximumSize = new Size(targetWidth, 0);
+            };
 
             // Keep menu open when clicking arrow buttons or toggle checkbox!
             menu.Closing += (sender, e) =>
