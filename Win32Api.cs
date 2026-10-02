@@ -37,9 +37,13 @@ namespace ScreensaverExtender
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool SystemParametersInfo(uint uAction, uint uParam, ref bool lpvParam, uint fuWinIni);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool DestroyIcon(IntPtr hIcon);
+
         /// <summary>
         /// Gets the current idle time (time elapsed since last keyboard/mouse input) in milliseconds.
-        /// Handles 32-bit tick count wraparound safely using unsigned arithmetic.
+        /// Handles 32-bit tick count wraparound safely using unsigned arithmetic and unchecked block.
         /// </summary>
         public static uint GetIdleTimeMillis()
         {
@@ -49,7 +53,10 @@ namespace ScreensaverExtender
             if (GetLastInputInfo(ref lii))
             {
                 uint currentTick = (uint)Environment.TickCount;
-                return currentTick - lii.dwTime;
+                unchecked
+                {
+                    return currentTick - lii.dwTime;
+                }
             }
 
             return 0;

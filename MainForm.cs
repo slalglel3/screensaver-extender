@@ -312,5 +312,15 @@ namespace ScreensaverExtender
 
             _lblStatus.Text = $"• 상태: {_engine.GetStatusDescription()}";
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _engine.SettingsChanged -= Engine_SettingsChanged;
+                _engine.StateChanged -= Engine_StateChanged;
+            }
+            base.Dispose(disposing);
+        }
     }
 }

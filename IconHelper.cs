@@ -49,7 +49,17 @@ namespace ScreensaverExtender
                 }
 
                 IntPtr hIcon = bmp.GetHicon();
-                return Icon.FromHandle(hIcon);
+                try
+                {
+                    using (Icon tempIcon = Icon.FromHandle(hIcon))
+                    {
+                        return (Icon)tempIcon.Clone();
+                    }
+                }
+                finally
+                {
+                    Win32Api.DestroyIcon(hIcon);
+                }
             }
         }
     }

@@ -7,7 +7,7 @@ namespace ScreensaverExtender
     public class TrayApplicationContext : ApplicationContext
     {
         private const string DeveloperId = "slalglel"; // About 메뉴에 표시될 사용자 ID
-        private const string AppVersion = "v1.0.0";
+        private const string AppVersion = "v1.0.1";
 
         private readonly NotifyIcon _notifyIcon;
         private readonly ContextMenuStrip _contextMenu;

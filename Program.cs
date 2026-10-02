@@ -6,7 +6,8 @@ namespace ScreensaverExtender
 {
     internal static class Program
     {
-        private const string AppMutexName = "Global\\ScreensaverExtender_SingleInstance_Mutex_slalglel";
+        // Use Local\ namespace to avoid VDI/RDS multi-user collisions and ensure non-admin compatibility
+        private const string AppMutexName = "Local\\ScreensaverExtender_SingleInstance_Mutex_slalglel";
 
         [STAThread]
         private static void Main()

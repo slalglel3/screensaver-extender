@@ -32,6 +32,7 @@ namespace ScreensaverExtender
         public event EventHandler<int>? SignalSent; // notifies sent count
 
         private readonly Timer _adaptiveTimer;
+        private uint _lastInputTimestamp = 0;
         private bool _disposed = false;
 
         public ExtenderEngine()
@@ -140,8 +141,30 @@ namespace ScreensaverExtender
         {
             if (_disposed) return;
 
-            uint idleMillis = Win32Api.GetIdleTimeMillis();
+            Win32Api.LASTINPUTINFO lii = new Win32Api.LASTINPUTINFO();
+            lii.cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf(lii);
+
+            if (!Win32Api.GetLastInputInfo(ref lii)) return;
+
+            uint currentTick = (uint)Environment.TickCount;
+            uint idleMillis;
+            unchecked
+            {
+                idleMillis = currentTick - lii.dwTime;
+            }
             CurrentIdleSeconds = idleMillis / 1000;
+
+            // 1. Detect physical user input by tracking timestamp changes
+            if (_lastInputTimestamp != 0 && lii.dwTime != _lastInputTimestamp)
+            {
+                // User interacted with keyboard/mouse -> reset delay cycle immediately
+                if (SentSignalCount != 0)
+                {
+                    SentSignalCount = 0;
+                    StateChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
+            _lastInputTimestamp = lii.dwTime;
 
             if (!IsEnabled)
             {
@@ -150,15 +173,10 @@ namespace ScreensaverExtender
                 return;
             }
 
-            // 1. If user was active recently (< 30 seconds idle), reset sent count
+            // 2. If user is actively working (< 30 seconds idle), maintain steady check
             if (CurrentIdleSeconds < 30)
             {
-                if (SentSignalCount != 0)
-                {
-                    SentSignalCount = 0;
-                    StateChanged?.Invoke(this, EventArgs.Empty);
-                }
-                _adaptiveTimer.Interval = 15000; // Check again in 15 seconds
+                _adaptiveTimer.Interval = 15000;
                 return;
             }
 
