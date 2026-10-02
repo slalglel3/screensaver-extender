@@ -41,6 +41,15 @@ namespace ScreensaverExtender
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DestroyIcon(IntPtr hIcon);
 
+        public const int WM_NCLBUTTONDOWN = 0xA1;
+        public const int HT_CAPTION = 0x2;
+
+        [DllImport("user32.dll")]
+        public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
         /// <summary>
         /// Gets the current idle time (time elapsed since last keyboard/mouse input) in milliseconds.
         /// Handles 32-bit tick count wraparound safely using unsigned arithmetic and unchecked block.

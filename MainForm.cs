@@ -8,20 +8,17 @@ namespace ScreensaverExtender
     {
         private readonly ExtenderEngine _engine;
 
+        private Label _lblHeader = null!;
         private Label _lblInterval = null!;
-        private Label _lblIntervalLimit = null!;
         private Button _btnIntervalDown = null!;
         private Button _btnIntervalUp = null!;
 
         private Label _lblCount = null!;
-        private Label _lblCountLimit = null!;
         private Button _btnCountDown = null!;
         private Button _btnCountUp = null!;
 
-        private Label _lblBaseTimeout = null!;
-        private Label _lblTotalExpected = null!;
-        private Label _lblStatus = null!;
         private CheckBox _chkEnabled = null!;
+        private Button _btnClose = null!;
 
         public MainForm(ExtenderEngine engine)
         {
@@ -36,206 +33,132 @@ namespace ScreensaverExtender
 
         private void InitializeComponent()
         {
-            this.Text = "스마트 화면보호기 지연 설정";
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            // 1. Frameless Modern Card Window
+            this.FormBorderStyle = FormBorderStyle.None;
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.ClientSize = new Size(390, 370);
-            this.BackColor = Color.FromArgb(248, 249, 250);
-            this.Font = new Font("Malgun Gothic", 9.5f, FontStyle.Regular);
+            this.ClientSize = new Size(290, 160);
+            this.BackColor = Color.White;
+            this.Font = new Font("Malgun Gothic", 9.0f, FontStyle.Regular);
             this.ShowInTaskbar = false;
+            this.KeyPreview = true;
 
-            // 1. Title / Header Panel
+            // Allow dragging the entire window smoothly
+            this.MouseDown += EnableWindowDrag;
+            this.KeyDown += (s, e) => { if (e.KeyCode == Keys.Escape) this.Hide(); };
+
+            // Line 1: Header (파란 배경의 '예상 잠금 : 10분 후' 표시)
             Panel headerPanel = new Panel
             {
-                Dock = DockStyle.Top,
-                Height = 45,
-                BackColor = Color.FromArgb(30, 136, 229)
+                Location = new Point(1, 1),
+                Size = new Size(288, 38),
+                BackColor = Color.FromArgb(30, 136, 229) // Material Blue
             };
-            Label titleLabel = new Label
+            headerPanel.MouseDown += EnableWindowDrag;
+
+            _lblHeader = new Label
             {
-                Text = "⏱ 스마트 화면보호기 지연기",
+                Text = "예상 잠금 : 계산 중",
                 ForeColor = Color.White,
-                Font = new Font("Malgun Gothic", 11.5f, FontStyle.Bold),
+                Font = new Font("Malgun Gothic", 10.5f, FontStyle.Bold),
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleCenter
             };
-            headerPanel.Controls.Add(titleLabel);
+            _lblHeader.MouseDown += EnableWindowDrag;
+            headerPanel.Controls.Add(_lblHeader);
             this.Controls.Add(headerPanel);
 
-            // Container Panel
-            Panel bodyPanel = new Panel
-            {
-                Location = new Point(15, 55),
-                Size = new Size(360, 260),
-                BackColor = Color.White,
-                BorderStyle = BorderStyle.FixedSingle
-            };
-            this.Controls.Add(bodyPanel);
-
-            int yOffset = 15;
-
-            // Row 1: Interval (주기 설정)
+            // Line 2: '주기'
             Label lblIntervalTitle = new Label
             {
-                Text = "신호 주기 :",
-                Location = new Point(15, yOffset + 4),
-                Size = new Size(80, 25),
-                Font = new Font("Malgun Gothic", 9.5f, FontStyle.Bold)
+                Text = "주기",
+                Location = new Point(16, 52),
+                Size = new Size(38, 20),
+                Font = new Font("Malgun Gothic", 9.5f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(33, 33, 33)
             };
-            bodyPanel.Controls.Add(lblIntervalTitle);
+            this.Controls.Add(lblIntervalTitle);
 
             _btnIntervalDown = new Button
             {
                 Text = "◀",
-                Location = new Point(100, yOffset),
-                Size = new Size(38, 28),
+                Location = new Point(60, 48),
+                Size = new Size(32, 26),
                 FlatStyle = FlatStyle.System
             };
             _btnIntervalDown.Click += (s, e) => _engine.DecreaseInterval();
-            bodyPanel.Controls.Add(_btnIntervalDown);
+            this.Controls.Add(_btnIntervalDown);
 
             _lblInterval = new Label
             {
-                Text = "3 분",
-                Location = new Point(145, yOffset + 3),
-                Size = new Size(70, 24),
+                Text = "4분 (최대 4분)",
+                Location = new Point(96, 52),
+                Size = new Size(125, 20),
                 TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Malgun Gothic", 10.5f, FontStyle.Bold),
+                Font = new Font("Malgun Gothic", 9.0f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(21, 101, 192)
             };
-            bodyPanel.Controls.Add(_lblInterval);
+            this.Controls.Add(_lblInterval);
 
             _btnIntervalUp = new Button
             {
                 Text = "▶",
-                Location = new Point(220, yOffset),
-                Size = new Size(38, 28),
+                Location = new Point(225, 48),
+                Size = new Size(32, 26),
                 FlatStyle = FlatStyle.System
             };
             _btnIntervalUp.Click += (s, e) => _engine.IncreaseInterval();
-            bodyPanel.Controls.Add(_btnIntervalUp);
+            this.Controls.Add(_btnIntervalUp);
 
-            _lblIntervalLimit = new Label
-            {
-                Text = "(최대 4분)",
-                Location = new Point(265, yOffset + 5),
-                Size = new Size(80, 20),
-                ForeColor = Color.Gray,
-                Font = new Font("Malgun Gothic", 8.5f)
-            };
-            bodyPanel.Controls.Add(_lblIntervalLimit);
-
-            yOffset += 45;
-
-            // Row 2: Count (횟수 설정)
+            // Line 3: '횟수'
             Label lblCountTitle = new Label
             {
-                Text = "연장 횟수 :",
-                Location = new Point(15, yOffset + 4),
-                Size = new Size(80, 25),
-                Font = new Font("Malgun Gothic", 9.5f, FontStyle.Bold)
+                Text = "횟수",
+                Location = new Point(16, 88),
+                Size = new Size(38, 20),
+                Font = new Font("Malgun Gothic", 9.5f, FontStyle.Bold),
+                ForeColor = Color.FromArgb(33, 33, 33)
             };
-            bodyPanel.Controls.Add(lblCountTitle);
+            this.Controls.Add(lblCountTitle);
 
             _btnCountDown = new Button
             {
                 Text = "◀",
-                Location = new Point(100, yOffset),
-                Size = new Size(38, 28),
+                Location = new Point(60, 84),
+                Size = new Size(32, 26),
                 FlatStyle = FlatStyle.System
             };
             _btnCountDown.Click += (s, e) => _engine.DecreaseCount();
-            bodyPanel.Controls.Add(_btnCountDown);
+            this.Controls.Add(_btnCountDown);
 
             _lblCount = new Label
             {
-                Text = "2 회",
-                Location = new Point(145, yOffset + 3),
-                Size = new Size(70, 24),
+                Text = "2회 (최대 100회)",
+                Location = new Point(96, 88),
+                Size = new Size(125, 20),
                 TextAlign = ContentAlignment.MiddleCenter,
-                Font = new Font("Malgun Gothic", 10.5f, FontStyle.Bold),
+                Font = new Font("Malgun Gothic", 9.0f, FontStyle.Regular),
                 ForeColor = Color.FromArgb(21, 101, 192)
             };
-            bodyPanel.Controls.Add(_lblCount);
+            this.Controls.Add(_lblCount);
 
             _btnCountUp = new Button
             {
                 Text = "▶",
-                Location = new Point(220, yOffset),
-                Size = new Size(38, 28),
+                Location = new Point(225, 84),
+                Size = new Size(32, 26),
                 FlatStyle = FlatStyle.System
             };
             _btnCountUp.Click += (s, e) => _engine.IncreaseCount();
-            bodyPanel.Controls.Add(_btnCountUp);
+            this.Controls.Add(_btnCountUp);
 
-            _lblCountLimit = new Label
-            {
-                Text = "(최대 100회)",
-                Location = new Point(265, yOffset + 5),
-                Size = new Size(85, 20),
-                ForeColor = Color.Gray,
-                Font = new Font("Malgun Gothic", 8.5f)
-            };
-            bodyPanel.Controls.Add(_lblCountLimit);
-
-            yOffset += 45;
-
-            // Divider Line
-            Label divider = new Label
-            {
-                BorderStyle = BorderStyle.Fixed3D,
-                Location = new Point(15, yOffset),
-                Size = new Size(330, 2)
-            };
-            bodyPanel.Controls.Add(divider);
-
-            yOffset += 10;
-
-            // Row 3: Windows ScreenSaver Info
-            _lblBaseTimeout = new Label
-            {
-                Text = "• PC 기본 화면보호기: 5분 후 작동",
-                Location = new Point(15, yOffset),
-                Size = new Size(330, 22),
-                ForeColor = Color.FromArgb(66, 66, 66)
-            };
-            bodyPanel.Controls.Add(_lblBaseTimeout);
-
-            yOffset += 24;
-
-            // Row 4: Total Expected Time (주요 강조)
-            _lblTotalExpected = new Label
-            {
-                Text = "▶ 최종 예상 잠금: 약 13분 후 (기본 5분 + 연장 8분)",
-                Location = new Point(15, yOffset),
-                Size = new Size(330, 24),
-                Font = new Font("Malgun Gothic", 9.5f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(198, 40, 40) // Red/Dark Amber highlight
-            };
-            bodyPanel.Controls.Add(_lblTotalExpected);
-
-            yOffset += 32;
-
-            // Row 5: Current Status
-            _lblStatus = new Label
-            {
-                Text = "• 상태: 사용자 작업 중 (대기 0/2회)",
-                Location = new Point(15, yOffset),
-                Size = new Size(330, 40),
-                ForeColor = Color.FromArgb(46, 125, 50),
-                Font = new Font("Malgun Gothic", 9.0f)
-            };
-            bodyPanel.Controls.Add(_lblStatus);
-
-            // Bottom Controls (Checkbox & Close Button)
+            // Line 4: '기능 활성화' 체크박스 & '닫기' 버튼
             _chkEnabled = new CheckBox
             {
                 Text = "기능 활성화",
-                Location = new Point(20, 325),
-                Size = new Size(110, 25),
-                Checked = _engine.IsEnabled
+                Location = new Point(18, 122),
+                Size = new Size(105, 24),
+                Checked = _engine.IsEnabled,
+                Font = new Font("Malgun Gothic", 9.0f, FontStyle.Regular)
             };
             _chkEnabled.CheckedChanged += (s, e) =>
             {
@@ -246,25 +169,32 @@ namespace ScreensaverExtender
             };
             this.Controls.Add(_chkEnabled);
 
-            Button btnHide = new Button
+            _btnClose = new Button
             {
-                Text = "트레이로 닫기",
-                Location = new Point(255, 323),
-                Size = new Size(120, 30),
+                Text = "닫기",
+                Location = new Point(210, 120),
+                Size = new Size(62, 28),
                 FlatStyle = FlatStyle.System
             };
-            btnHide.Click += (s, e) => this.Hide();
-            this.Controls.Add(btnHide);
+            _btnClose.Click += (s, e) => this.Hide();
+            this.Controls.Add(_btnClose);
 
-            this.FormClosing += MainForm_FormClosing;
+            // 1px Border drawing
+            this.Paint += (s, e) =>
+            {
+                using (Pen borderPen = new Pen(Color.FromArgb(170, 185, 205), 1))
+                {
+                    e.Graphics.DrawRectangle(borderPen, 0, 0, this.ClientSize.Width - 1, this.ClientSize.Height - 1);
+                }
+            };
         }
 
-        private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
+        private void EnableWindowDrag(object? sender, MouseEventArgs e)
         {
-            if (e.CloseReason == CloseReason.UserClosing)
+            if (e.Button == MouseButtons.Left)
             {
-                e.Cancel = true;
-                this.Hide();
+                Win32Api.ReleaseCapture();
+                Win32Api.SendMessage(this.Handle, Win32Api.WM_NCLBUTTONDOWN, Win32Api.HT_CAPTION, 0);
             }
         }
 
@@ -294,23 +224,21 @@ namespace ScreensaverExtender
 
         private void UpdateUiState()
         {
-            _lblInterval.Text = $"{_engine.IntervalMinutes} 분";
-            _lblCount.Text = $"{_engine.MaxSignalCount} 회";
-            _chkEnabled.Checked = _engine.IsEnabled;
+            // Line 1: Header
+            _lblHeader.Text = $"예상 잠금 : {_engine.TotalExpectedMinutes}분 후";
 
-            // Safe Guard: Toggle arrow buttons availability
+            // Line 2: Interval
+            _lblInterval.Text = $"{_engine.IntervalMinutes}분 (최대 {_engine.MaxInterval}분)";
             _btnIntervalUp.Enabled = _engine.CanIncreaseInterval;
             _btnIntervalDown.Enabled = _engine.CanDecreaseInterval;
+
+            // Line 3: Count
+            _lblCount.Text = $"{_engine.MaxSignalCount}회 (최대 {ExtenderEngine.MaxCount}회)";
             _btnCountUp.Enabled = _engine.CanIncreaseCount;
             _btnCountDown.Enabled = _engine.CanDecreaseCount;
 
-            _lblIntervalLimit.Text = $"(최대 {_engine.MaxInterval}분)";
-            _lblBaseTimeout.Text = $"• PC 기본 화면보호기: {_engine.ScreenSaverTimeoutMinutes}분 후 작동";
-
-            int extensionMinutes = _engine.MaxSignalCount * _engine.IntervalMinutes;
-            _lblTotalExpected.Text = $"▶ 최종 예상 잠금: 약 {_engine.TotalExpectedMinutes}분 후 (기본 {_engine.ScreenSaverTimeoutMinutes}분 + 연장 {extensionMinutes}분)";
-
-            _lblStatus.Text = $"• 상태: {_engine.GetStatusDescription()}";
+            // Line 4: Checkbox
+            _chkEnabled.Checked = _engine.IsEnabled;
         }
 
         protected override void Dispose(bool disposing)

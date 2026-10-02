@@ -7,12 +7,15 @@ namespace ScreensaverExtender
     public class TrayApplicationContext : ApplicationContext
     {
         private const string DeveloperId = "slalglel"; // About 메뉴에 표시될 사용자 ID
-        private const string AppVersion = "v1.0.1";
+        private const string AppVersion = "v1.0.2";
 
         private readonly NotifyIcon _notifyIcon;
         private readonly ContextMenuStrip _contextMenu;
         private readonly ExtenderEngine _engine;
         private MainForm? _mainForm;
+
+        // Flag to prevent context menu from auto-closing when clicking adjust buttons
+        private bool _preventCloseOnItemClick = false;
 
         // Menu Items for dynamic updates
         private ToolStripMenuItem _itemSummary = null!;
@@ -50,41 +53,71 @@ namespace ScreensaverExtender
             ContextMenuStrip menu = new ContextMenuStrip();
             menu.Font = new Font("Malgun Gothic", 9.0f);
 
+            // Keep menu open when clicking arrow buttons or toggle checkbox!
+            menu.Closing += (sender, e) =>
+            {
+                if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked && _preventCloseOnItemClick)
+                {
+                    e.Cancel = true;
+                    _preventCloseOnItemClick = false;
+                }
+            };
+
             // 1. Summary (예상 잠금 시간)
-            _itemSummary = new ToolStripMenuItem("[예상 잠금: 계산 중]")
+            _itemSummary = new ToolStripMenuItem("예상 잠금 : 계산 중")
             {
                 Enabled = false,
-                Font = new Font("Malgun Gothic", 9.0f, FontStyle.Bold)
+                Font = new Font("Malgun Gothic", 9.5f, FontStyle.Bold)
             };
             menu.Items.Add(_itemSummary);
             menu.Items.Add(new ToolStripSeparator());
 
-            // 2. Interval Group
-            _itemIntervalUp = new ToolStripMenuItem("▲ 주기 1분 증가", null, (s, e) => _engine.IncreaseInterval());
-            _itemIntervalText = new ToolStripMenuItem("[ 주기 : 3분 ]") { Enabled = false };
-            _itemIntervalDown = new ToolStripMenuItem("▼ 주기 1분 감소", null, (s, e) => _engine.DecreaseInterval());
+            // 2. Interval Group (간결한 텍스트 & 클릭 시 메뉴 유지)
+            _itemIntervalUp = new ToolStripMenuItem("▲  +1분", null, (s, e) =>
+            {
+                _preventCloseOnItemClick = true;
+                _engine.IncreaseInterval();
+            });
+            _itemIntervalText = new ToolStripMenuItem("3분") { Enabled = false };
+            _itemIntervalDown = new ToolStripMenuItem("▼  -1분", null, (s, e) =>
+            {
+                _preventCloseOnItemClick = true;
+                _engine.DecreaseInterval();
+            });
 
             menu.Items.Add(_itemIntervalUp);
             menu.Items.Add(_itemIntervalText);
             menu.Items.Add(_itemIntervalDown);
             menu.Items.Add(new ToolStripSeparator());
 
-            // 3. Count Group
-            _itemCountUp = new ToolStripMenuItem("▲ 횟수 1회 증가", null, (s, e) => _engine.IncreaseCount());
-            _itemCountText = new ToolStripMenuItem("[ 횟수 : 2회 ]") { Enabled = false };
-            _itemCountDown = new ToolStripMenuItem("▼ 횟수 1회 감소", null, (s, e) => _engine.DecreaseCount());
+            // 3. Count Group (간결한 텍스트 & 클릭 시 메뉴 유지)
+            _itemCountUp = new ToolStripMenuItem("▲  +1회", null, (s, e) =>
+            {
+                _preventCloseOnItemClick = true;
+                _engine.IncreaseCount();
+            });
+            _itemCountText = new ToolStripMenuItem("2회") { Enabled = false };
+            _itemCountDown = new ToolStripMenuItem("▼  -1회", null, (s, e) =>
+            {
+                _preventCloseOnItemClick = true;
+                _engine.DecreaseCount();
+            });
 
             menu.Items.Add(_itemCountUp);
             menu.Items.Add(_itemCountText);
             menu.Items.Add(_itemCountDown);
             menu.Items.Add(new ToolStripSeparator());
 
-            // 4. Toggle Active
-            _itemToggleEnabled = new ToolStripMenuItem("✔ 활성화", null, (s, e) => _engine.ToggleEnabled());
+            // 4. Toggle Active (클릭 시 메뉴 유지)
+            _itemToggleEnabled = new ToolStripMenuItem("✔ 기능 활성화", null, (s, e) =>
+            {
+                _preventCloseOnItemClick = true;
+                _engine.ToggleEnabled();
+            });
             menu.Items.Add(_itemToggleEnabled);
 
             // 5. Open Settings Dialog
-            ToolStripMenuItem itemOpen = new ToolStripMenuItem("⚙ 세부 설정 창 열기...", null, (s, e) => ShowMainForm());
+            ToolStripMenuItem itemOpen = new ToolStripMenuItem("세부 설정 창...", null, (s, e) => ShowMainForm());
             menu.Items.Add(itemOpen);
             menu.Items.Add(new ToolStripSeparator());
 
@@ -133,11 +166,10 @@ namespace ScreensaverExtender
 
         private void UpdateMenuStates()
         {
-            int extensionMinutes = _engine.MaxSignalCount * _engine.IntervalMinutes;
-            _itemSummary.Text = $"[예상 잠금: 약 {_engine.TotalExpectedMinutes}분 후] (기본 {_engine.ScreenSaverTimeoutMinutes}분 + 연장 {extensionMinutes}분)";
+            _itemSummary.Text = $"예상 잠금 : {_engine.TotalExpectedMinutes}분 후";
 
-            _itemIntervalText.Text = $"[ 주기 : {_engine.IntervalMinutes}분 ] (최대 {_engine.MaxInterval}분)";
-            _itemCountText.Text = $"[ 횟수 : {_engine.MaxSignalCount}회 ] (최대 {ExtenderEngine.MaxCount}회)";
+            _itemIntervalText.Text = $"{_engine.IntervalMinutes}분 (최대 {_engine.MaxInterval}분)";
+            _itemCountText.Text = $"{_engine.MaxSignalCount}회 (최대 {ExtenderEngine.MaxCount}회)";
 
             // Guard Conditions for Context Menu Arrows
             _itemIntervalUp.Enabled = _engine.CanIncreaseInterval;
@@ -145,16 +177,11 @@ namespace ScreensaverExtender
             _itemCountUp.Enabled = _engine.CanIncreaseCount;
             _itemCountDown.Enabled = _engine.CanDecreaseCount;
 
-            _itemToggleEnabled.Text = _engine.IsEnabled ? "✔ 활성화 (작동 중)" : "✖ 비활성화됨";
+            _itemToggleEnabled.Text = _engine.IsEnabled ? "✔ 기능 활성화" : "✖ 비활성화됨";
             _itemToggleEnabled.Checked = _engine.IsEnabled;
 
             // Update Tray Tooltip
-            _notifyIcon.Text = $"스마트 화면보호기 지연기\n예상: 약 {_engine.TotalExpectedMinutes}분 후\n{_engine.GetStatusDescription()}";
-            if (_notifyIcon.Text.Length >= 64)
-            {
-                // NotifyIcon.Text max length is 63 chars on older win32 APIs
-                _notifyIcon.Text = $"화면보호기 지연기 ({_engine.TotalExpectedMinutes}분 후 잠금)";
-            }
+            _notifyIcon.Text = $"화면보호기 지연기 ({_engine.TotalExpectedMinutes}분 후 잠금)";
         }
 
         private void ExitProgram()
