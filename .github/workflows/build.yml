@@ -1,0 +1,39 @@
+name: Build Portable Windows Exe
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Build .NET Framework 4.8 (Universal Windows Native, <1MB)
+      run: |
+        dotnet build ScreensaverExtender.csproj -c Release -f net48
+        mkdir -p dist/net48
+        cp bin/Release/net48/ScreensaverExtender.exe dist/net48/ScreensaverExtender_net48.exe
+
+    - name: Publish .NET 8 Single-File Self-Contained Exe
+      run: |
+        dotnet publish ScreensaverExtender.csproj -c Release -f net8.0-windows -r win-x64 --self-contained false -p:PublishSingleFile=true -o dist/net8-win-x64
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ScreensaverExtender-Build
+        path: |
+          dist/net48/ScreensaverExtender_net48.exe
+          dist/net8-win-x64/ScreensaverExtender.exe
