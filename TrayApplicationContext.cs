@@ -7,16 +7,15 @@ namespace ScreensaverExtender
     public class TrayApplicationContext : ApplicationContext
     {
         private const string DeveloperId = "slalglel"; // About 메뉴에 표시될 사용자 ID
-        private const string AppVersion = "v1.0.3";
+        private const string AppVersion = "v1.0.4";
         private const int BaseMenuWidth = 250; // 최대 400분대 텍스트("예상 잠금 : 409분 후") 대비 여유있는 고정 폭
+        private const string KeepOpenTag = "keepOpen";
 
         private readonly NotifyIcon _notifyIcon;
         private readonly ContextMenuStrip _contextMenu;
         private readonly ExtenderEngine _engine;
         private MainForm? _mainForm;
-
-        // Flag to prevent context menu from auto-closing when clicking adjust buttons
-        private bool _preventCloseOnItemClick = false;
+        private ToolStripItem? _lastClickedItem = null;
 
         // Menu Items for dynamic updates
         private ToolStripMenuItem _itemSummary = null!;
@@ -86,19 +85,33 @@ namespace ScreensaverExtender
 
             menu.Opening += (sender, e) =>
             {
+                _lastClickedItem = null;
                 int targetWidth = GetScaledMenuWidth(menu);
                 menu.MinimumSize = new Size(targetWidth, 0);
                 menu.MaximumSize = new Size(targetWidth, 0);
             };
 
-            // Keep menu open when clicking arrow buttons or toggle checkbox!
+            // Capture clicked item before Closing event fires
+            menu.ItemClicked += (sender, e) =>
+            {
+                _lastClickedItem = e.ClickedItem;
+            };
+
+            // Keep menu open when clicking arrow buttons or toggle checkbox (even on the very first click!)
             menu.Closing += (sender, e) =>
             {
-                if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked && _preventCloseOnItemClick)
+                if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked)
                 {
-                    e.Cancel = true;
-                    _preventCloseOnItemClick = false;
+                    if (_lastClickedItem != null && _lastClickedItem.Tag as string == KeepOpenTag)
+                    {
+                        e.Cancel = true;
+                    }
                 }
+            };
+
+            menu.Closed += (sender, e) =>
+            {
+                _lastClickedItem = null;
             };
 
             // 1. Summary (예상 잠금 시간)
@@ -111,17 +124,15 @@ namespace ScreensaverExtender
             menu.Items.Add(new ToolStripSeparator());
 
             // 2. Interval Group (간결한 텍스트 & 클릭 시 메뉴 유지)
-            _itemIntervalUp = new ToolStripMenuItem("▲  +1분", null, (s, e) =>
+            _itemIntervalUp = new ToolStripMenuItem("▲  +1분", null, (s, e) => _engine.IncreaseInterval())
             {
-                _preventCloseOnItemClick = true;
-                _engine.IncreaseInterval();
-            });
+                Tag = KeepOpenTag
+            };
             _itemIntervalText = new ToolStripMenuItem("3분") { Enabled = false };
-            _itemIntervalDown = new ToolStripMenuItem("▼  -1분", null, (s, e) =>
+            _itemIntervalDown = new ToolStripMenuItem("▼  -1분", null, (s, e) => _engine.DecreaseInterval())
             {
-                _preventCloseOnItemClick = true;
-                _engine.DecreaseInterval();
-            });
+                Tag = KeepOpenTag
+            };
 
             menu.Items.Add(_itemIntervalUp);
             menu.Items.Add(_itemIntervalText);
@@ -129,17 +140,15 @@ namespace ScreensaverExtender
             menu.Items.Add(new ToolStripSeparator());
 
             // 3. Count Group (간결한 텍스트 & 클릭 시 메뉴 유지)
-            _itemCountUp = new ToolStripMenuItem("▲  +1회", null, (s, e) =>
+            _itemCountUp = new ToolStripMenuItem("▲  +1회", null, (s, e) => _engine.IncreaseCount())
             {
-                _preventCloseOnItemClick = true;
-                _engine.IncreaseCount();
-            });
+                Tag = KeepOpenTag
+            };
             _itemCountText = new ToolStripMenuItem("2회") { Enabled = false };
-            _itemCountDown = new ToolStripMenuItem("▼  -1회", null, (s, e) =>
+            _itemCountDown = new ToolStripMenuItem("▼  -1회", null, (s, e) => _engine.DecreaseCount())
             {
-                _preventCloseOnItemClick = true;
-                _engine.DecreaseCount();
-            });
+                Tag = KeepOpenTag
+            };
 
             menu.Items.Add(_itemCountUp);
             menu.Items.Add(_itemCountText);
@@ -147,11 +156,10 @@ namespace ScreensaverExtender
             menu.Items.Add(new ToolStripSeparator());
 
             // 4. Toggle Active (클릭 시 메뉴 유지)
-            _itemToggleEnabled = new ToolStripMenuItem("✔ 기능 활성화", null, (s, e) =>
+            _itemToggleEnabled = new ToolStripMenuItem("✔ 기능 활성화", null, (s, e) => _engine.ToggleEnabled())
             {
-                _preventCloseOnItemClick = true;
-                _engine.ToggleEnabled();
-            });
+                Tag = KeepOpenTag
+            };
             menu.Items.Add(_itemToggleEnabled);
 
             // 5. Open Settings Dialog
