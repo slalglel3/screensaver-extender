@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="128" height="128">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background Base Circle (Material Blue 600) -->
+  <circle cx="16" cy="16" r="14" fill="#1E88E5" filter="url(#shadow)" />
+
+  <!-- Inner Cyan Accent Ring -->
+  <circle cx="16" cy="16" r="11" fill="none" stroke="#B3E5FC" stroke-width="1.6" opacity="0.9" />
+
+  <!-- Clock Hands (Keep Awake Glyph) -->
+  <!-- Minute Hand: points to 12 o'clock -->
+  <line x1="16" y1="16" x2="16" y2="8.5" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" />
+  
+  <!-- Hour Hand: points to 3 o'clock -->
+  <line x1="16" y1="16" x2="22.5" y2="16" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" />
+
+  <!-- Center Pivot Pin -->
+  <circle cx="16" cy="16" r="2" fill="#FFFFFF" />
+</svg>
