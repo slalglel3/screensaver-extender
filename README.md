@@ -53,6 +53,17 @@
 
 ---
 
+## 📥 다운로드 안내 (사내망 / Releases 탭 차단 환경)
+
+Releases 탭이나 개별 `.exe` 다운로드가 사내 보안망에 의해 차단된 경우:
+1. GitHub 저장소 메인 화면 상단의 초록색 **`<> Code`** 버튼 클릭
+2. **`Download ZIP`** 선택하여 전체 소스코드 ZIP 다운로드
+3. 압축 해제 후 **`dist/`** 폴더 내의 실행 파일 사용:
+   - **`dist/ScreensaverExtender.exe`** : 무설치 즉시 실행 파일 (24 KB)
+   - **`dist/ScreensaverExtender_net48.zip`** : 압축 패키지 버전 (11 KB)
+
+---
+
 ## 🛠 빌드 및 개발 환경
 
 - **타겟 프레임워크**:

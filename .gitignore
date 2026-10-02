@@ -14,7 +14,8 @@
 *.exe
 *.dll
 *.pdb
-!artifacts/*.exe
+!dist/*.exe
+!dist/*.zip
 
 ## OS files
 .DS_Store
